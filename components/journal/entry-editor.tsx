@@ -35,6 +35,7 @@ export type EditableEntry = {
   cover_url: string | null
   music_url: string | null
   is_public: boolean
+  shared_with_friends: boolean
   share_slug: string | null
 }
 
@@ -54,6 +55,7 @@ export function EntryEditor({
   )
   const [musicUrl, setMusicUrl] = useState(entry?.music_url ?? '')
   const [isPublic, setIsPublic] = useState(entry?.is_public ?? false)
+  const [sharedWithFriends, setSharedWithFriends] = useState(entry?.shared_with_friends ?? false)
   const [uploading, setUploading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -100,6 +102,7 @@ export function EntryEditor({
     coverUrl,
     musicUrl,
     isPublic,
+    sharedWithFriends,
   })
 
   const handleSave = () => {
@@ -315,6 +318,23 @@ export function EntryEditor({
             Save the entry to get its shareable link.
           </p>
         )}
+      </div>
+
+      {/* Sharing with Friends */}
+      <div className="mt-4 rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="font-medium text-foreground">Share with Friends</p>
+            <p className="text-sm text-muted-foreground">
+              Your accepted friends will see this entry in their Echoes feed.
+            </p>
+          </div>
+          <Switch
+            checked={sharedWithFriends}
+            onCheckedChange={setSharedWithFriends}
+            aria-label="Share with friends"
+          />
+        </div>
       </div>
     </div>
   )

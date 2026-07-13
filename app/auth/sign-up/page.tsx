@@ -41,8 +41,12 @@ export default function Page() {
       })
       if (error) throw error
       router.push('/auth/sign-up-success')
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      let errorMessage = error?.message || 'An error occurred';
+      if (typeof errorMessage === 'object') errorMessage = JSON.stringify(errorMessage);
+      if (errorMessage === '{}' || !errorMessage) errorMessage = JSON.stringify(error);
+      setError(errorMessage);
     } finally {
       setIsLoading(false)
     }

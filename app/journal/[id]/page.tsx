@@ -18,7 +18,7 @@ export default async function EditEntryPage({
   const { data: entry } = await supabase
     .from('entries')
     .select(
-      'id, title, content, mood, cover_url, music_url, is_public, share_slug, user_id',
+      'id, title, content, mood, cover_url, music_url, is_public, shared_with_friends, share_slug, user_id',
     )
     .eq('id', id)
     .single()

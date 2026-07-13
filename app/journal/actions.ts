@@ -11,6 +11,7 @@ export type EntryInput = {
   coverUrl: string | null
   musicUrl: string | null
   isPublic: boolean
+  sharedWithFriends: boolean
 }
 
 async function requireUser() {
@@ -35,6 +36,7 @@ export async function createEntry(input: EntryInput) {
       cover_url: input.coverUrl,
       music_url: input.musicUrl?.trim() || null,
       is_public: input.isPublic,
+      shared_with_friends: input.sharedWithFriends,
     })
     .select('id')
     .single()
@@ -57,6 +59,7 @@ export async function updateEntry(id: string, input: EntryInput) {
       cover_url: input.coverUrl,
       music_url: input.musicUrl?.trim() || null,
       is_public: input.isPublic,
+      shared_with_friends: input.sharedWithFriends,
     })
     .eq('id', id)
 
