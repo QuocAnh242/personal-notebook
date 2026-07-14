@@ -25,6 +25,31 @@ type Friendship = {
   } | null
 }
 
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.type = 'sine'
+    const now = ctx.currentTime
+    osc.frequency.setValueAtTime(783.99, now) // G5
+    osc.frequency.setValueAtTime(1046.50, now + 0.08) // C6
+
+    gain.gain.setValueAtTime(0, now)
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.04)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35)
+
+    osc.start(now)
+    osc.stop(now + 0.4)
+  } catch (e) {
+    console.warn('Audio chime blocked:', e)
+  }
+}
+
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<Friendship[]>([])
   const [userId, setUserId] = useState<string | null>(null)
@@ -85,7 +110,15 @@ export function NotificationBell() {
           schema: 'public',
           table: 'friendships',
         },
-        () => {
+        (payload) => {
+          if (
+            payload.eventType === 'INSERT' &&
+            payload.new &&
+            payload.new.user2_id === userId &&
+            payload.new.status === 'pending'
+          ) {
+            playChime()
+          }
           fetchNotifications(userId)
         }
       )

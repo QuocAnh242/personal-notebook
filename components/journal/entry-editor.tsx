@@ -316,7 +316,7 @@ export function EntryEditor({
         </Label>
         {musicUrl ? (
           musicUrl.includes('spotify.com') ? (
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all duration-300 hover:shadow-md">
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/30">
                 <div className="flex items-center gap-2">
                   <svg className="size-4 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
@@ -342,7 +342,7 @@ export function EntryEditor({
                 title="Selected Song"
                 loading="lazy"
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                className="h-[80px] w-full border-none"
+                className="h-[80px] w-full border-none bg-transparent rounded-b-xl overflow-hidden"
               />
             </div>
           ) : (
