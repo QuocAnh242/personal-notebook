@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Fraunces, Inter } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const inter = Inter({
@@ -17,7 +18,7 @@ const fraunces = Fraunces({
 })
 
 export const metadata: Metadata = {
-  title: 'Leaflet — your personal notebook',
+  title: 'Morrow — your personal notebook',
   description:
     'A quiet, private place to write your story: your music, your love, your sadness, your plans, and your becoming.',
   generator: 'v0.app',
@@ -57,11 +58,14 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${fraunces.variable} bg-background`}
+      suppressHydrationWarning
     >
       <body className="font-sans antialiased">
-        {children}
-        <Toaster position="top-center" />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <ThemeProvider>
+          {children}
+          <Toaster position="top-center" />
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </ThemeProvider>
       </body>
     </html>
   )

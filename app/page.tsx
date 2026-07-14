@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
-import { BookHeart, Heart, PenLine, Share2, Sparkles } from 'lucide-react'
+import { Heart, PenLine, Share2, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -34,19 +34,19 @@ export default async function LandingPage() {
   return (
     <div className="min-h-svh bg-background">
       <header className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4">
-        <div className="flex items-center gap-2 text-primary">
-          <BookHeart className="size-5" aria-hidden="true" />
-          <span className="font-serif text-lg font-semibold tracking-tight text-foreground">
-            Leaflet
+        <div className="flex items-center gap-3 text-primary">
+          <Image src="/images/morrow-logo.png" alt="Morrow logo" width={40} height={40} />
+          <span className="font-serif text-xl font-semibold tracking-tight text-[#c63b3b]">
+            Morrow
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/auth/login">Sign in</Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/auth/sign-up">Start writing</Link>
-          </Button>
+          <Link href="/auth/login" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            Sign in
+          </Link>
+          <Link href="/auth/sign-up" className={buttonVariants({ size: "sm" })}>
+            Start writing
+          </Link>
         </div>
       </header>
 
@@ -66,12 +66,12 @@ export default async function LandingPage() {
               better — and share what you choose.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link href="/auth/sign-up">Begin your notebook</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link href="/auth/login">I already have one</Link>
-              </Button>
+              <Link href="/auth/sign-up" className={buttonVariants({ size: "lg" })}>
+                Begin your notebook
+              </Link>
+              <Link href="/auth/login" className={buttonVariants({ size: "lg", variant: "outline" })}>
+                I already have one
+              </Link>
             </div>
           </div>
           <div className="relative">
@@ -110,7 +110,7 @@ export default async function LandingPage() {
 
       <footer className="border-t border-border/70">
         <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-2 px-4 py-8 text-sm text-muted-foreground sm:flex-row">
-          <span className="font-serif text-base text-foreground">Leaflet</span>
+          <span className="font-serif text-base text-foreground">Morrow</span>
           <span>A quiet place for your story. You are worthy of being loved.</span>
         </div>
       </footer>

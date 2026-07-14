@@ -26,8 +26,8 @@ export default async function JournalPage() {
   return (
     <div className="min-h-svh bg-background">
       <JournalHeader email={user.email ?? ''} />
-      <main className="mx-auto w-full max-w-3xl px-4 py-8">
-        <div className="mb-8">
+      <main className="mx-auto w-full max-w-3xl px-4 py-8 animate-in fade-in duration-500">
+        <div className="mb-8 animate-slide-in">
           <h1 className="text-balance font-serif text-3xl font-semibold tracking-tight text-foreground">
             Your notebook
           </h1>
@@ -36,14 +36,14 @@ export default async function JournalPage() {
           </p>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-8 animate-slide-in delay-100">
           <Encouragement />
         </div>
 
         {list.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card/50 p-10 text-center">
+          <div className="rounded-xl border border-dashed border-border bg-card/50 p-10 text-center animate-scale-in">
             <PenLine
-              className="mx-auto mb-4 size-8 text-muted-foreground"
+              className="mx-auto mb-4 size-8 text-muted-foreground animate-pulse-gentle"
               aria-hidden="true"
             />
             <h2 className="font-serif text-xl font-semibold text-foreground">
@@ -53,14 +53,16 @@ export default async function JournalPage() {
               Write about your day, a song stuck in your head, someone you love,
               or a plan for who you want to become.
             </p>
-            <Button asChild className="mt-5">
+            <Button asChild className="mt-5 transition-all duration-200 hover:scale-105">
               <Link href="/journal/new">Write your first entry</Link>
             </Button>
           </div>
         ) : (
           <div className="flex flex-col gap-5">
-            {list.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} />
+            {list.map((entry, index) => (
+              <div key={entry.id} style={{ animationDelay: `${index * 50}ms` }} className="animate-slide-in">
+                <EntryCard entry={entry} />
+              </div>
             ))}
           </div>
         )}
