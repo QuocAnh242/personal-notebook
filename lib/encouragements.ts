@@ -1,4 +1,4 @@
-const ENCOURAGEMENTS = [
+export const ENCOURAGEMENTS = [
   'You are becoming, quietly and surely, someone you will be proud of.',
   'Your feelings are worth writing down. All of them.',
   'The person you are today is enough. The person you are growing into is on the way.',

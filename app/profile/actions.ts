@@ -3,14 +3,23 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
-export async function updateProfile(username: string) {
+export async function updateProfile(username: string, avatarUrl?: string | null) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
+  const updateData: { id: string; username: string; avatar_url?: string | null } = {
+    id: user.id,
+    username: username.trim(),
+  }
+
+  if (avatarUrl !== undefined) {
+    updateData.avatar_url = avatarUrl
+  }
+
   const { error } = await supabase
     .from('profiles')
-    .upsert({ id: user.id, username: username.trim() })
+    .upsert(updateData)
 
   if (error) return { error: error.message }
   revalidatePath('/profile')

@@ -1,49 +1,51 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Edit } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { MoodBadge } from '@/components/journal/mood-badge'
 import { MusicEmbed } from '@/components/journal/music-embed'
 import { CommentsSection } from '@/components/journal/comments-section'
 import { formatDate } from '@/lib/format'
 import { fetchComments } from '@/app/journal/actions'
-import { buttonVariants } from '@/components/ui/button'
-import { EntryEditor, type EditableEntry } from '@/components/journal/entry-editor'
 
-export default async function EntryDetailPage({
+export default async function ExploreEntryPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ edit?: string }>
 }) {
   const { id } = await params
-  const { edit } = await searchParams
-  
   const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) redirect('/auth/login')
 
+  // Fetch the entry
   const { data: entry } = await supabase
     .from('entries')
-    .select(
-      'id, title, content, mood, cover_url, music_url, is_public, shared_with_friends, share_slug, user_id, created_at',
-    )
+    .select('id, title, content, mood, cover_url, music_url, is_public, shared_with_friends, user_id, created_at')
     .eq('id', id)
     .single()
 
-  if (!entry || entry.user_id !== user.id) notFound()
+  if (!entry) notFound()
 
-  // If edit=true is passed, render the Editor form
-  if (edit === 'true') {
-    return (
-      <div className="min-h-svh bg-background">
-        <EntryEditor userId={user.id} entry={entry as EditableEntry} />
-      </div>
-    )
+  // Check access: either own entry, or shared_with_friends + is a friend
+  const isOwner = entry.user_id === user.id
+
+  if (!isOwner) {
+    if (!entry.shared_with_friends && !entry.is_public) notFound()
+
+    // If shared_with_friends, verify they are friends
+    if (entry.shared_with_friends && !entry.is_public) {
+      const { data: friendship } = await supabase
+        .from('friendships')
+        .select('id')
+        .eq('status', 'accepted')
+        .or(`and(user1_id.eq.${user.id},user2_id.eq.${entry.user_id}),and(user1_id.eq.${entry.user_id},user2_id.eq.${user.id})`)
+        .limit(1)
+        .single()
+
+      if (!friendship) notFound()
+    }
   }
 
   // Fetch author profile
@@ -59,23 +61,14 @@ export default async function EntryDetailPage({
   return (
     <div className="min-h-svh bg-background">
       <main className="mx-auto w-full max-w-2xl px-4 py-8 animate-in fade-in duration-500">
-        {/* Navigation header */}
-        <div className="mb-8 flex items-center justify-between animate-slide-in">
-          <Link
-            href="/journal"
-            className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200"
-          >
-            <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-            Back to notebook
-          </Link>
-          <Link
-            href={`/journal/${entry.id}?edit=true`}
-            className={buttonVariants({ variant: 'outline', size: 'sm', className: "flex items-center gap-1.5" })}
-          >
-            <Edit className="size-3.5" />
-            Edit page
-          </Link>
-        </div>
+        {/* Back navigation */}
+        <Link
+          href="/explore"
+          className="group mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-all duration-200"
+        >
+          <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+          Back to Echoes
+        </Link>
 
         {/* Cover image */}
         {entry.cover_url && (
@@ -142,7 +135,7 @@ export default async function EntryDetailPage({
           </div>
         )}
 
-        {/* Comments section */}
+        {/* Comments */}
         <CommentsSection
           entryId={entry.id}
           initialComments={comments}

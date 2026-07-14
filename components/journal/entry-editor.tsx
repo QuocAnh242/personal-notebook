@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useRef, useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -11,7 +11,10 @@ import {
   Loader2,
   Trash2,
   X,
+  Search,
+  Music,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { MOODS } from '@/lib/moods'
 import { Button } from '@/components/ui/button'
@@ -26,6 +29,9 @@ import {
   deleteEntry,
   type EntryInput,
   shareEntryViaEmail,
+  uploadCoverAndModerate,
+  searchSpotifyTracks,
+  getSpotifyTrackDetails,
 } from '@/app/journal/actions'
 import { ShareEmailDialog } from './share-email-dialog'
 
@@ -56,6 +62,45 @@ export function EntryEditor({
     entry?.cover_url ?? null,
   )
   const [musicUrl, setMusicUrl] = useState(entry?.music_url ?? '')
+  const [selectedTrack, setSelectedTrack] = useState<{ name: string; artists: string; albumArt: string; url: string } | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<{ id: string; name: string; artists: string; album: string; albumArt: string; url: string }[]>([])
+  const [searching, setSearching] = useState(false)
+
+  // Fetch track details when entry is loaded or musicUrl is updated
+  useEffect(() => {
+    if (musicUrl && musicUrl.includes('spotify.com')) {
+      getSpotifyTrackDetails(musicUrl).then((details) => {
+        if (details) {
+          setSelectedTrack(details)
+        }
+      })
+    } else {
+      setSelectedTrack(null)
+    }
+  }, [musicUrl])
+
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.startsWith('http')) {
+      setSearchResults([])
+      return
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const results = await searchSpotifyTracks(searchQuery)
+        setSearchResults(results)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setSearching(false)
+      }
+    }, 450)
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery])
+
   const [isPublic, setIsPublic] = useState(entry?.is_public ?? false)
   const [sharedWithFriends, setSharedWithFriends] = useState(entry?.shared_with_friends ?? false)
   const [uploading, setUploading] = useState(false)
@@ -77,22 +122,32 @@ export function EntryEditor({
     }
     setUploading(true)
     try {
-      const supabase = createClient()
-      const ext = file.name.split('.').pop() ?? 'jpg'
-      const path = `${userId}/${crypto.randomUUID()}.${ext}`
-      const { error } = await supabase.storage
-        .from('covers')
-        .upload(path, file, { upsert: true })
-      if (error) throw error
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('covers').getPublicUrl(path)
-      setCoverUrl(publicUrl)
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = async () => {
+        try {
+          const base64 = reader.result as string
+          const res = await uploadCoverAndModerate(base64, file.name)
+          if (res?.error) {
+            toast.error(res.error)
+          } else if (res?.publicUrl) {
+            setCoverUrl(res.publicUrl)
+            toast.success('Cover image uploaded!')
+          }
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Could not upload the image.')
+        } finally {
+          setUploading(false)
+        }
+      }
+      reader.onerror = () => {
+        toast.error('Failed to read file.')
+        setUploading(false)
+      }
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : 'Could not upload the image.',
       )
-    } finally {
       setUploading(false)
     }
   }
@@ -120,6 +175,7 @@ export function EntryEditor({
           return
         }
         toast.success('Saved.')
+        router.push(`/journal/${entry.id}`)
         router.refresh()
       } else {
         const res = await createEntry(buildInput())
@@ -148,12 +204,13 @@ export function EntryEditor({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8 animate-in fade-in duration-500">
       <div className="mb-8 flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm" className="transition-all duration-200 hover:translate-x-[-2px]">
-          <Link href="/journal">
-            <ArrowLeft className="size-4 transition-all duration-300" aria-hidden="true" />
-            Back
-          </Link>
-        </Button>
+        <Link
+          href={isEditing && entry ? `/journal/${entry.id}` : "/journal"}
+          className="group inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200"
+        >
+          <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" aria-hidden="true" />
+          Back
+        </Link>
         <div className="flex items-center gap-2">
           {isEditing && (
             <Button
@@ -230,7 +287,7 @@ export function EntryEditor({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Give this page a title…"
-        className="w-full bg-transparent font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/50 focus:outline-none transition-all duration-200 animate-slide-in"
+        className="w-full bg-transparent font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200 animate-slide-in"
         style={{ animationDelay: '150ms' }}
       />
 
@@ -239,7 +296,7 @@ export function EntryEditor({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Pour it out here — your music, your love, your sadness, your plans, your story…"
-        className="mt-6 min-h-[320px] resize-none border-0 bg-transparent px-0 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/40 shadow-none focus-visible:ring-0 transition-all duration-200 animate-slide-in"
+        className="mt-6 min-h-[320px] resize-none border-0 bg-transparent px-3 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/45 shadow-none focus-visible:ring-0 transition-all duration-200 animate-slide-in"
         style={{ animationDelay: '200ms' }}
       />
 
@@ -256,11 +313,10 @@ export function EntryEditor({
                 key={m.value}
                 type="button"
                 onClick={() => setMood(active ? null : m.value)}
-                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 ${
-                  active
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 ${active
                     ? 'border-primary bg-primary text-primary-foreground shadow-md'
                     : 'border-border/70 bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-card/80'
-                }`}
+                  }`}
               >
                 {m.label}
               </button>
@@ -268,21 +324,134 @@ export function EntryEditor({
           })}
         </div>
       </div>
-
       {/* Music */}
       <div className="mt-8 grid gap-2 animate-slide-in" style={{ animationDelay: '300ms' }}>
-        <Label htmlFor="music" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
-          Add a song (optional)
-        </Label>
-        <Input
-          id="music"
-          type="url"
-          inputMode="url"
-          value={musicUrl}
-          onChange={(e) => setMusicUrl(e.target.value)}
-          placeholder="Paste a Spotify or YouTube link"
-          className="transition-all duration-200"
-        />
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
+            Add a song
+          </Label>
+          {musicUrl && (
+            <button
+              type="button"
+              onClick={() => {
+                setMusicUrl('')
+                setSelectedTrack(null)
+                setSearchQuery('')
+              }}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors duration-200"
+              title="Remove song"
+            >
+              <X className="size-3.5" />
+              Remove song
+            </button>
+          )}
+        </div>
+
+        {musicUrl ? (
+          musicUrl.includes('spotify.com') ? (
+            <div className="overflow-hidden rounded-xl border border-border bg-[#282828] shadow-sm">
+              <iframe
+                src={`https://open.spotify.com/embed${musicUrl.split('spotify.com')[1]?.split('?')[0] || ''}`}
+                title="Selected Song"
+                loading="lazy"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                className="h-[80px] w-full border-none bg-transparent rounded-xl overflow-hidden"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-xl border border-border bg-card/60 p-3 shadow-sm">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500 dark:bg-red-950/20 dark:text-red-400">
+                  <Music className="size-5" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium text-foreground truncate max-w-[200px] sm:max-w-[400px]">
+                    {musicUrl}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Pasted URL</span>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-full text-muted-foreground hover:text-foreground shrink-0"
+                onClick={() => {
+                  setMusicUrl('')
+                  setSearchQuery('')
+                }}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          )
+        ) : (
+          <div className="relative">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="music"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  if (e.target.value.startsWith('http')) {
+                    setMusicUrl(e.target.value)
+                  }
+                }}
+                placeholder="Search with Spotify..."
+                className="pl-9 pr-10 transition-all duration-200 focus-visible:ring-emerald-500"
+              />
+              {searching && (
+                <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+              )}
+            </div>
+
+            {searchResults.length > 0 && (
+              <div className="absolute z-10 mt-1.5 w-full rounded-xl border border-emerald-500/20 bg-popover/95 backdrop-blur-xl p-2 shadow-2xl shadow-emerald-500/5 max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-300">
+                {/* Spotify branding header */}
+                <div className="flex items-center gap-2 px-2.5 py-2 mb-1">
+                  <svg className="size-4 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+                  </svg>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-600 dark:text-emerald-400">
+                    Search Results
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  {searchResults.map((track, i) => (
+                    <button
+                      key={track.id}
+                      type="button"
+                      onClick={() => {
+                        setMusicUrl(track.url)
+                        setSearchResults([])
+                        setSearchQuery('')
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg p-2.5 text-left text-sm hover:bg-emerald-500/10 transition-all duration-200 animate-in fade-in slide-in-from-bottom-1"
+                      style={{ animationDelay: `${i * 40}ms` }}
+                    >
+                      {track.albumArt ? (
+                        <img
+                          src={track.albumArt}
+                          alt={track.album}
+                          className="size-11 rounded-lg object-cover bg-muted shrink-0 shadow-sm ring-1 ring-border/20"
+                        />
+                      ) : (
+                        <div className="size-11 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                          <Music className="size-5 text-emerald-500" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground truncate text-[13px]">{track.name}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{track.artists} · {track.album}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Sharing */}

@@ -2,11 +2,13 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import { Music } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { MoodBadge } from '@/components/journal/mood-badge'
 import { MusicEmbed } from '@/components/journal/music-embed'
 import { formatDate } from '@/lib/format'
 import { excerpt } from '@/lib/format'
+
 
 type SharedEntry = {
   title: string
@@ -50,6 +52,15 @@ export default async function SharedEntryPage({
   const { slug } = await params
   const entry = await getEntry(slug)
   if (!entry) notFound()
+
+  let spotifyTrack = null
+  if (entry.music_url && entry.music_url.includes('spotify.com')) {
+    try {
+      spotifyTrack = await getSpotifyTrackDetails(entry.music_url)
+    } catch (e) {
+      console.error('Failed to get Spotify details for share page:', e)
+    }
+  }
 
   return (
     <div className="min-h-svh bg-background">

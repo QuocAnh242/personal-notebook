@@ -17,18 +17,43 @@ export default async function ProfilePage() {
     .eq('id', user.id)
     .single()
 
-  // Fetch friendships (both sent and received)
-  const { data: friendshipsData } = await supabase
+  // Fetch friendships (both sent and received) and profiles independently
+  const { data: friendshipsRaw } = await supabase
     .from('friendships')
-    .select(`
-      id,
-      status,
-      user1:profiles!friendships_user1_id_fkey(id, username),
-      user2:profiles!friendships_user2_id_fkey(id, username)
-    `)
+    .select('id, status, user1_id, user2_id')
     .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
 
-  const friendships = friendshipsData || []
+  const friendshipsData = friendshipsRaw || []
+
+  // Fetch all profiles involved in these friendships
+  const profileIds = Array.from(
+    new Set(friendshipsData.flatMap((f) => [f.user1_id, f.user2_id]))
+  )
+
+  let profiles: { id: string; username: string | null }[] = []
+  if (profileIds.length > 0) {
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('id, username')
+      .in('id', profileIds)
+    profiles = profilesData || []
+  }
+
+  // Stitch them together in JS
+  const friendships = friendshipsData.map((f) => {
+    const p1 = profiles.find((p) => p.id === f.user1_id)
+    const p2 = profiles.find((p) => p.id === f.user2_id)
+    
+    const user1Name = p1?.username || `User_${f.user1_id.slice(0, 5)}`
+    const user2Name = p2?.username || `User_${f.user2_id.slice(0, 5)}`
+
+    return {
+      id: f.id,
+      status: f.status,
+      user1: { id: f.user1_id, username: user1Name },
+      user2: { id: f.user2_id, username: user2Name },
+    }
+  })
 
   // Split friendships into categories
   const acceptedFriends = friendships.filter(f => f.status === 'accepted')
@@ -50,7 +75,9 @@ export default async function ProfilePage() {
 
         <div className="grid gap-8 md:grid-cols-2">
           <ProfileManager 
-            initialUsername={profile?.username || ''} 
+            initialUsername={profile?.username || ''}
+            initialAvatarUrl={profile?.avatar_url || null}
+            userId={user.id}
           />
           <FriendshipManager 
             currentUserId={user.id}

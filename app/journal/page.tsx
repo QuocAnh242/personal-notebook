@@ -15,6 +15,17 @@ export default async function JournalPage() {
 
   if (!user) redirect('/auth/login')
 
+  // Ensure profile row exists
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .single()
+    
+  if (!profile) {
+    await supabase.from('profiles').insert({ id: user.id })
+  }
+
   const { data: entries } = await supabase
     .from('entries')
     .select('id, title, content, mood, cover_url, music_url, is_public, created_at')
