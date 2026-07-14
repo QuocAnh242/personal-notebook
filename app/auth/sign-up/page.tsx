@@ -30,13 +30,17 @@ export default function Page() {
     }
 
     try {
+      const callbackUrl = new URL(
+        process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
+          `${window.location.origin}/auth/callback`,
+      )
+      callbackUrl.searchParams.set('next', '/auth/confirm')
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
-            `${window.location.origin}/auth/callback`,
+          emailRedirectTo: callbackUrl.toString(),
         },
       })
       if (error) throw error

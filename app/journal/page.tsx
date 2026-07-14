@@ -23,7 +23,12 @@ export default async function JournalPage() {
     .single()
     
   if (!profile) {
-    await supabase.from('profiles').insert({ id: user.id })
+    await supabase.from('profiles').insert({
+      id: user.id,
+      email: user.email ?? null,
+    })
+  } else if (user.email) {
+    await supabase.from('profiles').update({ email: user.email }).eq('id', user.id)
   }
 
   const { data: entries } = await supabase
