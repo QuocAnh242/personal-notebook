@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BookHeart } from 'lucide-react'
+import Image from 'next/image'
 
 export function AuthShell({
   title,
@@ -16,12 +16,10 @@ export function AuthShell({
         <div className="mb-8 flex flex-col items-center text-center">
           <Link
             href="/"
-            className="mb-5 inline-flex items-center gap-2 text-primary"
+            className="mb-6 flex flex-col items-center gap-4 hover:opacity-90 transition-opacity"
           >
-            <BookHeart className="size-6" aria-hidden="true" />
-            <span className="font-serif text-xl font-semibold tracking-tight">
-              Leaflet
-            </span>
+            <Image src="/images/morrow-logo.png" alt="Morrow logo" width={128} height={128} className="drop-shadow-sm" />
+
           </Link>
           <h1 className="text-pretty font-serif text-3xl font-semibold tracking-tight text-foreground">
             {title}

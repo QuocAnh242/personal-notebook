@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { BookHeart } from 'lucide-react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { MoodBadge } from '@/components/journal/mood-badge'
 import { MusicEmbed } from '@/components/journal/music-embed'
@@ -35,9 +35,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const entry = await getEntry(slug)
-  if (!entry) return { title: 'Entry not found — Leaflet' }
+  if (!entry) return { title: 'Entry not found — Morrow' }
   return {
-    title: `${entry.title || 'Untitled'} — Leaflet`,
+    title: `${entry.title || 'Untitled'} — Morrow`,
     description: excerpt(entry.content, 155),
   }
 }
@@ -55,10 +55,10 @@ export default async function SharedEntryPage({
     <div className="min-h-svh bg-background">
       <header className="border-b border-border/70">
         <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2 text-primary">
-            <BookHeart className="size-5" aria-hidden="true" />
-            <span className="font-serif text-lg font-semibold tracking-tight text-foreground">
-              Leaflet
+          <Link href="/" className="flex items-center gap-3 text-primary">
+            <Image src="/images/morrow-logo.png" alt="Morrow logo" width={40} height={40} />
+            <span className="font-serif text-xl font-semibold tracking-tight text-[#c63b3b]">
+              Morrow
             </span>
           </Link>
           <Link
@@ -115,7 +115,7 @@ export default async function SharedEntryPage({
               href="/"
               className="font-medium text-primary underline-offset-4 hover:underline"
             >
-              Leaflet
+              Morrow
             </Link>
             {' '}— a quiet place for your story.
           </p>

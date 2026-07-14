@@ -17,7 +17,7 @@ const fraunces = Fraunces({
 })
 
 export const metadata: Metadata = {
-  title: 'Leaflet — your personal notebook',
+  title: 'Morrow — your personal notebook',
   description:
     'A quiet, private place to write your story: your music, your love, your sadness, your plans, and your becoming.',
   generator: 'v0.app',
