@@ -30,28 +30,46 @@ export default async function ProfilePage() {
     new Set(friendshipsData.flatMap((f) => [f.user1_id, f.user2_id]))
   )
 
-  let profiles: { id: string; username: string | null }[] = []
+  let profiles: {
+    id: string
+    username: string | null
+    avatar_url: string | null
+    email: string | null
+  }[] = []
   if (profileIds.length > 0) {
-    const { data: profilesData } = await supabase
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+    const { data: profilesData } = await adminSupabase
       .from('profiles')
-      .select('id, username')
+      .select('id, username, avatar_url, email')
       .in('id', profileIds)
     profiles = profilesData || []
   }
+
 
   // Stitch them together in JS
   const friendships = friendshipsData.map((f) => {
     const p1 = profiles.find((p) => p.id === f.user1_id)
     const p2 = profiles.find((p) => p.id === f.user2_id)
-    
+
     const user1Name = p1?.username || `User_${f.user1_id.slice(0, 5)}`
     const user2Name = p2?.username || `User_${f.user2_id.slice(0, 5)}`
 
     return {
       id: f.id,
       status: f.status,
-      user1: { id: f.user1_id, username: user1Name },
-      user2: { id: f.user2_id, username: user2Name },
+      user1: {
+        id: f.user1_id,
+        username: user1Name,
+        avatar_url: p1?.avatar_url ?? null,
+        email: p1?.email ?? null,
+      },
+      user2: {
+        id: f.user2_id,
+        username: user2Name,
+        avatar_url: p2?.avatar_url ?? null,
+        email: p2?.email ?? null,
+      },
     }
   })
 

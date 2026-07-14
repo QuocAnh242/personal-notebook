@@ -20,7 +20,6 @@ import { MOODS } from '@/lib/moods'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import {
@@ -34,6 +33,16 @@ import {
   getSpotifyTrackDetails,
 } from '@/app/journal/actions'
 import { ShareEmailDialog } from './share-email-dialog'
+import { MinimalEditor } from '@/components/journal/minimal-editor'
+import { ImageCropperDialog } from '@/components/ui/image-cropper'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 export type EditableEntry = {
   id: string
@@ -66,6 +75,7 @@ export function EntryEditor({
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<{ id: string; name: string; artists: string; album: string; albumArt: string; url: string }[]>([])
   const [searching, setSearching] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Fetch track details when entry is loaded or musicUrl is updated
   useEffect(() => {
@@ -104,6 +114,8 @@ export function EntryEditor({
   const [isPublic, setIsPublic] = useState(entry?.is_public ?? false)
   const [sharedWithFriends, setSharedWithFriends] = useState(entry?.shared_with_friends ?? false)
   const [uploading, setUploading] = useState(false)
+  const [cropperOpen, setCropperOpen] = useState(false)
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -115,11 +127,17 @@ export function EntryEditor({
       ? `${window.location.origin}/share/${entry.share_slug}`
       : null
 
-  const handleUpload = async (file: File) => {
+  const handleCoverSelect = (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error('Please choose an image file.')
       return
     }
+    const objectUrl = URL.createObjectURL(file)
+    setCropperSrc(objectUrl)
+    setCropperOpen(true)
+  }
+
+  const handleUpload = async (file: File) => {
     setUploading(true)
     try {
       const reader = new FileReader()
@@ -186,10 +204,14 @@ export function EntryEditor({
 
   const handleDelete = () => {
     if (!entry) return
-    if (!confirm('Delete this entry? This cannot be undone.')) return
     startTransition(async () => {
       const res = await deleteEntry(entry.id)
-      if (res?.error) toast.error(res.error)
+      if (res?.error) {
+        toast.error(res.error)
+      } else {
+        toast.success('Page deleted.')
+        setShowDeleteConfirm(false)
+      }
     })
   }
 
@@ -216,9 +238,9 @@ export function EntryEditor({
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={isPending}
-              className="text-destructive hover:text-destructive transition-all duration-200"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-all duration-200"
             >
               <Trash2 className="size-4" aria-hidden="true" />
               <span className="hidden sm:inline">Delete</span>
@@ -276,9 +298,21 @@ export function EntryEditor({
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0]
-            if (file) handleUpload(file)
+            if (file) handleCoverSelect(file)
             e.target.value = ''
           }}
+        />
+        <ImageCropperDialog
+          isOpen={cropperOpen}
+          onOpenChange={(open) => {
+            setCropperOpen(open)
+            if (!open && cropperSrc) URL.revokeObjectURL(cropperSrc)
+          }}
+          imageSrc={cropperSrc}
+          aspect={16 / 7}
+          onCropCompleteAction={handleUpload}
+          title="Crop Cover Image"
+          description="Drag to adjust, pinch to zoom. Choose the best part of the image."
         />
       </div>
 
@@ -292,12 +326,10 @@ export function EntryEditor({
       />
 
       {/* Content */}
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
+      <MinimalEditor
+        content={content}
+        onChange={setContent}
         placeholder="Pour it out here — your music, your love, your sadness, your plans, your story…"
-        className="mt-6 min-h-[320px] resize-none border-0 bg-transparent px-3 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/45 shadow-none focus-visible:ring-0 transition-all duration-200 animate-slide-in"
-        style={{ animationDelay: '200ms' }}
       />
 
       {/* Mood */}
@@ -314,8 +346,8 @@ export function EntryEditor({
                 type="button"
                 onClick={() => setMood(active ? null : m.value)}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 ${active
-                    ? 'border-primary bg-primary text-primary-foreground shadow-md'
-                    : 'border-border/70 bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-card/80'
+                  ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                  : 'border-border/70 bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-card/80'
                   }`}
               >
                 {m.label}
@@ -522,6 +554,39 @@ export function EntryEditor({
             />
           </div>
         </div>
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent showCloseButton={false} className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-xl font-semibold text-foreground">
+                Delete Page
+              </DialogTitle>
+              <DialogDescription className="mt-2 text-sm text-muted-foreground">
+                Are you sure you want to delete <span className="font-semibold text-foreground">“{title || 'Untitled'}”</span>? This action cannot be undone and this page will be removed from your notebook forever.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="mt-6 flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={isPending}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isPending}
+                onClick={handleDelete}
+                className="flex items-center gap-1.5"
+              >
+                {isPending && <Loader2 className="size-4 animate-spin" />}
+                Delete forever
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

@@ -17,7 +17,10 @@ export function formatDateTime(iso: string): string {
 }
 
 export function excerpt(text: string, max = 220): string {
-  const clean = text.replace(/\s+/g, ' ').trim()
+  // Strip HTML tags if any (from Tiptap/Rich Text)
+  const stripped = text.replace(/<[^>]*>?/gm, ' ')
+  // Clean up extra spaces
+  const clean = stripped.replace(/\s+/g, ' ').trim()
   if (clean.length <= max) return clean
   return clean.slice(0, max).trimEnd() + '…'
 }

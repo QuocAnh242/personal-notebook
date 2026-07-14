@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { JournalHeader } from '@/components/journal/journal-header'
 import { EntryCard, type EntryListItem } from '@/components/journal/entry-card'
+import { InfiniteEntryList } from '@/components/journal/infinite-entry-list'
+import { getMoreExploreEntries, augmentEntriesWithSpotify } from '../journal/fetch-actions'
 
 export default async function ExplorePage() {
   const supabase = await createClient()
@@ -16,13 +18,13 @@ export default async function ExplorePage() {
     .eq('status', 'accepted')
     .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
 
-  const friendIds = (friendshipsData || []).map(f => 
+  const friendIds = (friendshipsData || []).map(f =>
     f.user1_id === user.id ? f.user2_id : f.user1_id
   )
 
   // 2. Fetch shared entries from friends
   let list: EntryListItem[] = []
-  
+
   if (friendIds.length > 0) {
     const { data: entries } = await supabase
       .from('entries')
@@ -30,14 +32,14 @@ export default async function ExplorePage() {
       .in('user_id', friendIds)
       .eq('shared_with_friends', true)
       .order('created_at', { ascending: false })
-      .limit(50)
-      
-    list = (entries ?? []) as EntryListItem[]
+      .limit(20)
+
+    list = await augmentEntriesWithSpotify(entries ?? [])
   }
 
   return (
     <div className="min-h-svh bg-background">
-      <JournalHeader email={user.email ?? ''} />
+      <JournalHeader email={user.email ?? ''} currentTab="explore" />
       <main className="mx-auto w-full max-w-3xl px-4 py-8">
         <div className="mb-8 text-center">
           <h1 className="text-balance font-serif text-3xl font-semibold tracking-tight text-foreground">
@@ -63,15 +65,16 @@ export default async function ExplorePage() {
               No recent whispers
             </h2>
             <p className="mx-auto mt-2 max-w-sm text-pretty text-sm leading-relaxed text-muted-foreground">
-              None of your friends have shared any entries yet. 
+              None of your friends have shared any entries yet.
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-8">
-            {list.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} href={`/explore/${entry.id}`} />
-            ))}
-          </div>
+          <InfiniteEntryList
+            initialEntries={list}
+            fetchAction={getMoreExploreEntries}
+            limit={3}
+            baseHref="/explore"
+          />
         )}
       </main>
     </div>

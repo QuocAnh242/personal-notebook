@@ -31,7 +31,12 @@ export default function Page() {
       router.push('/journal')
       router.refresh()
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      const message = error instanceof Error ? error.message : 'An error occurred'
+      if (message.toLowerCase().includes('email not confirmed')) {
+        setError('Please confirm your email before signing in. Check your inbox for the link.')
+      } else {
+        setError(message)
+      }
     } finally {
       setIsLoading(false)
     }

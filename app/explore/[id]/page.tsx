@@ -122,11 +122,10 @@ export default async function ExploreEntryPage({
 
         {/* Content */}
         <div
-          className="mt-8 whitespace-pre-wrap text-pretty text-base leading-relaxed text-foreground animate-slide-in"
+          className="mt-8 text-pretty whitespace-pre-wrap prose prose-neutral dark:prose-invert max-w-none prose-p:leading-relaxed prose-li:my-0 animate-slide-in"
           style={{ animationDelay: '200ms' }}
-        >
-          {entry.content}
-        </div>
+          dangerouslySetInnerHTML={{ __html: entry.content }}
+        />
 
         {/* Music embed */}
         {entry.music_url && (
