@@ -175,7 +175,7 @@ export function EntryEditor({
       </div>
 
       {/* Cover */}
-      <div className="mb-6 animate-in fade-in slide-in-from-top duration-500 delay-100">
+      <div className="mb-6 animate-slide-in" style={{ animationDelay: '100ms' }}>
         {coverUrl ? (
           <div className="group relative overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-300 hover:shadow-md">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -228,7 +228,8 @@ export function EntryEditor({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Give this page a title…"
-        className="w-full bg-transparent font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/50 focus:outline-none transition-all duration-200 animate-in fade-in slide-in-from-top duration-500 delay-150"
+        className="w-full bg-transparent font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/50 focus:outline-none transition-all duration-200 animate-slide-in"
+        style={{ animationDelay: '150ms' }}
       />
 
       {/* Content */}
@@ -236,11 +237,12 @@ export function EntryEditor({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Pour it out here — your music, your love, your sadness, your plans, your story…"
-        className="mt-6 min-h-[320px] resize-none border-0 bg-transparent px-0 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/40 shadow-none focus-visible:ring-0 transition-all duration-200 animate-in fade-in slide-in-from-top duration-500 delay-200"
+        className="mt-6 min-h-[320px] resize-none border-0 bg-transparent px-0 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/40 shadow-none focus-visible:ring-0 transition-all duration-200 animate-slide-in"
+        style={{ animationDelay: '200ms' }}
       />
 
       {/* Mood */}
-      <div className="mt-8 border-t border-border/50 pt-8 animate-in fade-in slide-in-from-top duration-500 delay-250">
+      <div className="mt-8 border-t border-border/50 pt-8 animate-slide-in" style={{ animationDelay: '250ms' }}>
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
           How are you feeling?
         </Label>
@@ -266,7 +268,7 @@ export function EntryEditor({
       </div>
 
       {/* Music */}
-      <div className="mt-8 grid gap-2 animate-in fade-in slide-in-from-top duration-500 delay-300">
+      <div className="mt-8 grid gap-2 animate-slide-in" style={{ animationDelay: '300ms' }}>
         <Label htmlFor="music" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
           Add a song (optional)
         </Label>
@@ -282,7 +284,7 @@ export function EntryEditor({
       </div>
 
       {/* Sharing */}
-      <div className="mt-10 space-y-4 animate-in fade-in slide-in-from-top duration-500 delay-350">
+      <div className="mt-10 space-y-4 animate-slide-in" style={{ animationDelay: '350ms' }}>
         {/* Public Share */}
         <div className="group rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-4 transition-all duration-300 hover:border-border hover:bg-card">
           <div className="flex items-start justify-between gap-4">

@@ -53,9 +53,9 @@ export default async function SharedEntryPage({
 
   return (
     <div className="min-h-svh bg-background">
-      <header className="border-b border-border/70">
-        <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-3 text-primary">
+      <header className="border-b border-border/50 backdrop-blur-sm">
+        <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-4 animate-in fade-in duration-500">
+          <Link href="/" className="flex items-center gap-3 text-primary transition-all duration-300 hover:opacity-80">
             <Image src="/images/morrow-logo.png" alt="Morrow logo" width={40} height={40} />
             <span className="font-serif text-xl font-semibold tracking-tight text-[#c63b3b]">
               Morrow
@@ -63,57 +63,61 @@ export default async function SharedEntryPage({
           </Link>
           <Link
             href="/auth/sign-up"
-            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+            className="text-sm font-medium text-primary underline-offset-4 hover:underline transition-all duration-300"
           >
             Start your own
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl px-4 py-10">
-        <article>
-          <p className="text-sm text-muted-foreground">
-            <time dateTime={entry.created_at}>
-              {formatDate(entry.created_at)}
-            </time>
-          </p>
-          <h1 className="mt-2 text-balance font-serif text-4xl font-semibold leading-tight tracking-tight text-foreground">
-            {entry.title || 'Untitled'}
-          </h1>
-          {entry.mood && (
-            <div className="mt-4">
-              <MoodBadge mood={entry.mood} />
-            </div>
-          )}
+      <main className="mx-auto w-full max-w-2xl px-4 py-10 animate-in fade-in duration-500">
+        <article className="space-y-8">
+          <div className="animate-slide-in" style={{ animationDelay: '100ms' }}>
+            <p className="text-sm text-muted-foreground/80">
+              <time dateTime={entry.created_at}>
+                {formatDate(entry.created_at)}
+              </time>
+            </p>
+            <h1 className="mt-3 text-balance font-serif text-4xl font-semibold leading-tight tracking-tight text-foreground">
+              {entry.title || 'Untitled'}
+            </h1>
+            {entry.mood && (
+              <div className="mt-4 animate-scale-in" style={{ animationDelay: '200ms' }}>
+                <MoodBadge mood={entry.mood} />
+              </div>
+            )}
+          </div>
 
           {entry.cover_url && (
-            <div className="mt-6 overflow-hidden rounded-xl border border-border">
+            <div className="group overflow-hidden rounded-xl border border-border/50 shadow-sm transition-all duration-300 hover:shadow-md animate-slide-in" style={{ animationDelay: '150ms' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={entry.cover_url || '/placeholder.svg'}
                 alt=""
-                className="w-full object-cover"
+                className="w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
             </div>
           )}
 
-          <div className="mt-8 whitespace-pre-wrap text-pretty text-lg leading-relaxed text-foreground">
-            {entry.content}
+          <div className="prose prose-sm max-w-none animate-slide-in" style={{ animationDelay: '200ms' }}>
+            <div className="whitespace-pre-wrap text-pretty text-lg leading-relaxed text-foreground">
+              {entry.content}
+            </div>
           </div>
 
           {entry.music_url && (
-            <div className="mt-8">
+            <div className="animate-slide-in" style={{ animationDelay: '250ms' }}>
               <MusicEmbed url={entry.music_url} />
             </div>
           )}
         </article>
 
-        <footer className="mt-12 border-t border-border pt-6 text-center">
-          <p className="text-sm text-muted-foreground">
+        <footer className="mt-12 border-t border-border/30 pt-8 text-center animate-slide-in" style={{ animationDelay: '300ms' }}>
+          <p className="text-sm text-muted-foreground/80">
             Written in{' '}
             <Link
               href="/"
-              className="font-medium text-primary underline-offset-4 hover:underline"
+              className="font-medium text-primary underline-offset-4 hover:underline transition-all duration-300"
             >
               Morrow
             </Link>
