@@ -25,7 +25,9 @@ import {
   updateEntry,
   deleteEntry,
   type EntryInput,
+  shareEntryViaEmail,
 } from '@/app/journal/actions'
+import { ShareEmailDialog } from './share-email-dialog'
 
 export type EditableEntry = {
   id: string
@@ -302,22 +304,29 @@ export function EntryEditor({
             />
           </div>
           {isPublic && shareUrl && (
-            <div className="mt-4 flex items-center gap-2 animate-in fade-in slide-in-from-top duration-300">
-              <Input readOnly value={shareUrl} className="text-sm bg-background/50" />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={copyShareLink}
-                aria-label="Copy share link"
-                className="transition-all duration-200 hover:scale-110"
-              >
-                {copied ? (
-                  <Check className="size-4 text-green-600" aria-hidden="true" />
-                ) : (
-                  <Copy className="size-4" aria-hidden="true" />
-                )}
-              </Button>
+            <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top duration-300">
+              <div className="flex items-center gap-2">
+                <Input readOnly value={shareUrl} className="text-sm bg-background/50" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={copyShareLink}
+                  aria-label="Copy share link"
+                  className="transition-all duration-200 hover:scale-110"
+                >
+                  {copied ? (
+                    <Check className="size-4 text-green-600" aria-hidden="true" />
+                  ) : (
+                    <Copy className="size-4" aria-hidden="true" />
+                  )}
+                </Button>
+              </div>
+              {isEditing && entry && (
+                <div className="flex gap-2">
+                  <ShareEmailDialog entryId={entry.id} entryTitle={title || 'Untitled'} />
+                </div>
+              )}
             </div>
           )}
           {isPublic && !shareUrl && (
