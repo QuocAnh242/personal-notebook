@@ -31,6 +31,7 @@ import {
   shareEntryViaEmail,
   uploadCoverAndModerate,
   searchSpotifyTracks,
+  getSpotifyTrackDetails,
 } from '@/app/journal/actions'
 import { ShareEmailDialog } from './share-email-dialog'
 
@@ -61,9 +62,23 @@ export function EntryEditor({
     entry?.cover_url ?? null,
   )
   const [musicUrl, setMusicUrl] = useState(entry?.music_url ?? '')
+  const [selectedTrack, setSelectedTrack] = useState<{ name: string; artists: string; albumArt: string; url: string } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<{ id: string; name: string; artists: string; album: string; albumArt: string; url: string }[]>([])
   const [searching, setSearching] = useState(false)
+
+  // Fetch track details when entry is loaded or musicUrl is updated
+  useEffect(() => {
+    if (musicUrl && musicUrl.includes('spotify.com')) {
+      getSpotifyTrackDetails(musicUrl).then((details) => {
+        if (details) {
+          setSelectedTrack(details)
+        }
+      })
+    } else {
+      setSelectedTrack(null)
+    }
+  }, [musicUrl])
 
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.startsWith('http')) {
@@ -271,7 +286,7 @@ export function EntryEditor({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Give this page a title…"
-        className="w-full bg-transparent font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/50 focus:outline-none transition-all duration-200 animate-slide-in"
+        className="w-full bg-transparent font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/40 focus:outline-none transition-all duration-200 animate-slide-in"
         style={{ animationDelay: '150ms' }}
       />
 
@@ -280,7 +295,7 @@ export function EntryEditor({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Pour it out here — your music, your love, your sadness, your plans, your story…"
-        className="mt-6 min-h-[320px] resize-none border-0 bg-transparent px-0 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/40 shadow-none focus-visible:ring-0 transition-all duration-200 animate-slide-in"
+        className="mt-6 min-h-[320px] resize-none border-0 bg-transparent px-3 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/45 shadow-none focus-visible:ring-0 transition-all duration-200 animate-slide-in"
         style={{ animationDelay: '200ms' }}
       />
 
@@ -308,41 +323,38 @@ export function EntryEditor({
           })}
         </div>
       </div>
-
       {/* Music */}
       <div className="mt-8 grid gap-2 animate-slide-in" style={{ animationDelay: '300ms' }}>
-        <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
-          Add a song
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
+            Add a song
+          </Label>
+          {musicUrl && (
+            <button
+              type="button"
+              onClick={() => {
+                setMusicUrl('')
+                setSelectedTrack(null)
+                setSearchQuery('')
+              }}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors duration-200"
+              title="Remove song"
+            >
+              <X className="size-3.5" />
+              Remove song
+            </button>
+          )}
+        </div>
+
         {musicUrl ? (
           musicUrl.includes('spotify.com') ? (
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 bg-muted/30">
-                <div className="flex items-center gap-2">
-                  <svg className="size-4 text-[#1DB954]" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                  </svg>
-                  <span className="text-xs font-medium text-muted-foreground">Selected Song</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMusicUrl('')
-                    setSearchQuery('')
-                  }}
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-200"
-                  title="Remove song"
-                >
-                  <X className="size-3.5" />
-                  Remove
-                </button>
-              </div>
+            <div className="overflow-hidden rounded-xl border border-border bg-[#282828] shadow-sm">
               <iframe
                 src={`https://open.spotify.com/embed${musicUrl.split('spotify.com')[1]?.split('?')[0] || ''}`}
                 title="Selected Song"
                 loading="lazy"
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                className="h-[80px] w-full border-none bg-transparent rounded-b-xl overflow-hidden"
+                className="h-[80px] w-full border-none bg-transparent rounded-xl overflow-hidden"
               />
             </div>
           ) : (
