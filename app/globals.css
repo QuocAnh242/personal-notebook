@@ -2,6 +2,8 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
+@plugin "@tailwindcss/typography";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -127,6 +129,20 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Tiptap Placeholder and Prose overrides */
+  .ProseMirror p.is-editor-empty:first-child::before {
+    color: var(--color-muted-foreground);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    opacity: 0.45;
+  }
+  .ProseMirror p {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
   }
 }
 

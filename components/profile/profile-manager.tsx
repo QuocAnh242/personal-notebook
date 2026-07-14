@@ -6,6 +6,7 @@ import { Camera, Loader2 } from 'lucide-react'
 import { updateProfile } from '@/app/profile/actions'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
+import { ImageCropperDialog } from '@/components/ui/image-cropper'
 
 export function ProfileManager({
   initialUsername,
@@ -20,17 +21,25 @@ export function ProfileManager({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl)
   const [isSaving, setIsSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [cropperOpen, setCropperOpen] = useState(false)
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleAvatarUpload = async (file: File) => {
+  const handleAvatarSelect = (file: File) => {
     if (!file.type.startsWith('image/')) {
       toast.error('Please choose an image file.')
       return
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image must be under 2MB.')
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be under 10MB.')
       return
     }
+    const objectUrl = URL.createObjectURL(file)
+    setCropperSrc(objectUrl)
+    setCropperOpen(true)
+  }
+
+  const handleAvatarUpload = async (file: File) => {
     setUploading(true)
     try {
       const supabase = createClient()
@@ -114,9 +123,21 @@ export function ProfileManager({
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0]
-            if (file) handleAvatarUpload(file)
+            if (file) handleAvatarSelect(file)
             e.target.value = ''
           }}
+        />
+        <ImageCropperDialog
+          isOpen={cropperOpen}
+          onOpenChange={(open) => {
+            setCropperOpen(open)
+            if (!open && cropperSrc) URL.revokeObjectURL(cropperSrc)
+          }}
+          imageSrc={cropperSrc}
+          aspect={1}
+          onCropCompleteAction={handleAvatarUpload}
+          title="Crop Avatar"
+          description="Drag to adjust, pinch to zoom. Make it perfectly round!"
         />
       </div>
 

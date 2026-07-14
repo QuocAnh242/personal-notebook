@@ -5,12 +5,12 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Plus, User, Sun, Moon, LogOut, Settings } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { NotificationBell } from '@/components/journal/notification-bell'
 import { useTheme } from 'next-themes'
 import { useEffect, useState, useRef } from 'react'
-
-export function JournalHeader({ email }: { email: string }) {
+export function JournalHeader({ email, currentTab }: { email: string; currentTab?: 'journal' | 'explore' }) {
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [open, setOpen] = useState(false)
@@ -62,13 +62,39 @@ export function JournalHeader({ email }: { email: string }) {
             Morrow
           </span>
         </Link>
+        {/* Center Navigation Tabs (Desktop) */}
+        <div className="hidden sm:flex items-center bg-secondary/50 p-1 rounded-full border border-border/50 shadow-inner">
+          <Link
+            href="/journal"
+            className={cn(
+              "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
+              currentTab === 'journal' ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            )}
+          >
+            My Notes
+          </Link>
+          <Link
+            href="/explore"
+            className={cn(
+              "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
+              currentTab === 'explore' ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+            )}
+          >
+            The Echoes
+          </Link>
+        </div>
+
         <div className="flex items-center gap-2">
-          <Link href="/explore" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">Explore</Link>
-          <Link href="/journal/new" className={buttonVariants({ size: "sm", className: "flex items-center gap-1.5" })}>
+          {/* Mobile Links */}
+          <div className="sm:hidden flex items-center gap-3 mr-2">
+            <Link href="/journal" className={cn("text-sm font-medium transition-colors", currentTab === 'journal' ? "text-foreground" : "text-muted-foreground")}>Me</Link>
+            <Link href="/explore" className={cn("text-sm font-medium transition-colors", currentTab === 'explore' ? "text-foreground" : "text-muted-foreground")}>Friends</Link>
+          </div>
+
+          <Link href="/journal/new" className={buttonVariants({ size: "sm", className: "flex items-center gap-1.5 rounded-full" })}>
             <Plus className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Start writing</span>
           </Link>
-          
           <NotificationBell />
 
           {/* Profile dropdown — custom implementation for reliability */}

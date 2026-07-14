@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { JournalHeader } from '@/components/journal/journal-header'
 import { Encouragement } from '@/components/journal/encouragement'
 import { EntryCard, type EntryListItem } from '@/components/journal/entry-card'
+import { InfiniteEntryList } from '@/components/journal/infinite-entry-list'
+import { getMoreJournalEntries, augmentEntriesWithSpotify } from './fetch-actions'
 import { Button } from '@/components/ui/button'
 
 export default async function JournalPage() {
@@ -15,33 +17,20 @@ export default async function JournalPage() {
 
   if (!user) redirect('/auth/login')
 
-  // Ensure profile row exists
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('id', user.id)
-    .single()
-    
-  if (!profile) {
-    await supabase.from('profiles').insert({
-      id: user.id,
-      email: user.email ?? null,
-    })
-  } else if (user.email) {
-    await supabase.from('profiles').update({ email: user.email }).eq('id', user.id)
-  }
+
 
   const { data: entries } = await supabase
     .from('entries')
     .select('id, title, content, mood, cover_url, music_url, is_public, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+    .limit(20)
 
-  const list = (entries ?? []) as EntryListItem[]
+  const list = await augmentEntriesWithSpotify(entries ?? [])
 
   return (
     <div className="min-h-svh bg-background">
-      <JournalHeader email={user.email ?? ''} />
+      <JournalHeader email={user.email ?? ''} currentTab="journal" />
       <main className="mx-auto w-full max-w-3xl px-4 py-8 animate-in fade-in duration-500">
         <div className="mb-8 animate-slide-in">
           <h1 className="text-balance font-serif text-3xl font-semibold tracking-tight text-foreground">
@@ -74,13 +63,12 @@ export default async function JournalPage() {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col gap-5">
-            {list.map((entry, index) => (
-              <div key={entry.id} style={{ animationDelay: `${index * 50}ms` }} className="animate-slide-in">
-                <EntryCard entry={entry} />
-              </div>
-            ))}
-          </div>
+          <InfiniteEntryList
+            initialEntries={list}
+            fetchAction={getMoreJournalEntries}
+            limit={3}
+            baseHref="/journal"
+          />
         )}
       </main>
     </div>

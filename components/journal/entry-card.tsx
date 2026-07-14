@@ -14,20 +14,20 @@ export type EntryListItem = {
   music_url: string | null
   is_public: boolean
   created_at: string
+  spotifyTrack?: {
+    name: string
+    artists: string
+    album: string
+    albumArt: string
+    previewUrl: string | null
+  } | null
 }
 
-export async function EntryCard({ entry, href }: { entry: EntryListItem; href?: string }) {
+export function EntryCard({ entry, href }: { entry: EntryListItem; href?: string }) {
   const preview = excerpt(entry.content)
+  const spotifyTrack = entry.spotifyTrack
   
-  // Try to fetch Spotify track details for a custom badge
-  let spotifyTrack = null
-  if (entry.music_url && entry.music_url.includes('spotify.com')) {
-    try {
-      spotifyTrack = await getSpotifyTrackDetails(entry.music_url)
-    } catch (e) {
-      console.error('Failed to get Spotify details for card:', e)
-    }
-  }
+  // Spotify track details are now pre-fetched and passed inside `entry.spotifyTrack`
 
   return (
     <Link

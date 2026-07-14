@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { checkImageSafe } from '@/lib/vision'
+import { parseError } from '@/lib/error-handler'
 
 
 export type EntryInput = {
@@ -43,7 +44,7 @@ export async function createEntry(input: EntryInput) {
     .select('id')
     .single()
 
-  if (error) return { error: error.message }
+  if (error) return { error: parseError(error) }
 
   revalidatePath('/journal')
   redirect(`/journal/${data.id}`)
@@ -65,7 +66,7 @@ export async function updateEntry(id: string, input: EntryInput) {
     })
     .eq('id', id)
 
-  if (error) return { error: error.message }
+  if (error) return { error: parseError(error) }
 
   revalidatePath('/journal')
   revalidatePath(`/journal/${id}`)
@@ -75,7 +76,7 @@ export async function updateEntry(id: string, input: EntryInput) {
 export async function deleteEntry(id: string) {
   const { supabase } = await requireUser()
   const { error } = await supabase.from('entries').delete().eq('id', id)
-  if (error) return { error: error.message }
+  if (error) return { error: parseError(error) }
   revalidatePath('/journal')
   redirect('/journal')
 }
@@ -86,7 +87,7 @@ export async function setEntryVisibility(id: string, isPublic: boolean) {
     .from('entries')
     .update({ is_public: isPublic })
     .eq('id', id)
-  if (error) return { error: error.message }
+  if (error) return { error: parseError(error) }
   revalidatePath('/journal')
   revalidatePath(`/journal/${id}`)
   return { error: null }
@@ -139,7 +140,7 @@ export async function shareEntryViaEmail(
     return { error: null, success: true }
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Failed to send email',
+      error: parseError(err, 'Failed to send email'),
     }
   }
 }
@@ -178,7 +179,7 @@ export async function uploadCoverAndModerate(base64Image: string, fileName: stri
     return { error: null, publicUrl }
   } catch (err) {
     return {
-      error: err instanceof Error ? err.message : 'Could not upload image.',
+      error: parseError(err, 'Could not upload image.'),
     }
   }
 }
@@ -360,7 +361,7 @@ export async function addComment(entryId: string, content: string) {
       content: content.trim(),
     })
 
-  if (error) return { error: error.message }
+  if (error) return { error: parseError(error) }
 
   // Insert a notification if the commenter is not the entry author
   if (entry && entry.user_id !== user.id) {
@@ -393,7 +394,7 @@ export async function deleteComment(commentId: string) {
     .delete()
     .eq('id', commentId)
 
-  if (error) return { error: error.message }
+  if (error) return { error: parseError(error) }
   return { error: null }
 }
 

@@ -2,6 +2,15 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { parseError } from '@/lib/error-handler'
+
+export async function testAdminClient() {
+  const admin = createAdminClient()
+  const { data, error } = await admin.from('profiles').select('id, username').limit(3)
+  console.log('TEST ADMIN CLIENT:', data, error)
+  return { data, error }
+}
 
 export type SearchUserResult = {
   id: string
@@ -43,7 +52,7 @@ export async function updateProfile(username: string, avatarUrl?: string | null)
     .from('profiles')
     .upsert(updateData)
 
-  if (error) return { error: error.message }
+  if (error) return { error: parseError(error) }
   revalidatePath('/profile')
   return { error: null }
 }
@@ -60,15 +69,16 @@ export async function searchUsers(query: string): Promise<{
   if (q.length < 2) return { users: [], error: null }
 
   const pattern = `%${q}%`
+  const adminSupabase = createAdminClient()
 
-  const { data: profiles, error: searchError } = await supabase
+  const { data: profiles, error: searchError } = await adminSupabase
     .from('profiles')
     .select('id, username, avatar_url, email')
     .or(`username.ilike.${pattern},email.ilike.${pattern}`)
     .neq('id', user.id)
     .limit(10)
 
-  if (searchError) return { users: [], error: searchError.message }
+  if (searchError) return { users: [], error: parseError(searchError) }
   if (!profiles?.length) return { users: [], error: null }
 
   const { data: friendships } = await supabase
@@ -110,7 +120,9 @@ export async function sendFriendRequest(targetUserId: string) {
 
   if (targetUserId === user.id) return { error: 'Cannot add yourself' }
 
-  const { data: targetProfile, error: profileError } = await supabase
+  const adminSupabase = createAdminClient()
+
+  const { data: targetProfile, error: profileError } = await adminSupabase
     .from('profiles')
     .select('id')
     .eq('id', targetUserId)
@@ -137,7 +149,7 @@ export async function sendFriendRequest(targetUserId: string) {
 
   if (error) {
     if (error.code === '23505') return { error: 'Friend request already exists' }
-    return { error: error.message }
+    return { error: parseError(error) }
   }
 
   revalidatePath('/profile')
@@ -151,7 +163,7 @@ export async function acceptFriendRequest(friendshipId: string) {
     .update({ status: 'accepted' })
     .eq('id', friendshipId)
 
-  if (error) return { error: error.message }
+  if (error) return { error: parseError(error) }
   revalidatePath('/profile')
   return { error: null }
 }
@@ -163,7 +175,7 @@ export async function removeFriend(friendshipId: string) {
     .delete()
     .eq('id', friendshipId)
 
-  if (error) return { error: error.message }
+  if (error) return { error: parseError(error) }
   revalidatePath('/profile')
   return { error: null }
 }

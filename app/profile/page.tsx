@@ -37,16 +37,15 @@ export default async function ProfilePage() {
     email: string | null
   }[] = []
   if (profileIds.length > 0) {
-    const { data: profilesData } = await supabase
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+    const { data: profilesData } = await adminSupabase
       .from('profiles')
       .select('id, username, avatar_url, email')
       .in('id', profileIds)
     profiles = profilesData || []
   }
 
-  if (user.email) {
-    await supabase.from('profiles').update({ email: user.email }).eq('id', user.id)
-  }
 
   // Stitch them together in JS
   const friendships = friendshipsData.map((f) => {
