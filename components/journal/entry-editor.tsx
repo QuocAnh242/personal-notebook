@@ -175,6 +175,7 @@ export function EntryEditor({
           return
         }
         toast.success('Saved.')
+        router.push(`/journal/${entry.id}`)
         router.refresh()
       } else {
         const res = await createEntry(buildInput())
@@ -204,7 +205,7 @@ export function EntryEditor({
     <div className="mx-auto w-full max-w-2xl px-4 py-8 animate-in fade-in duration-500">
       <div className="mb-8 flex items-center justify-between">
         <Link
-          href="/journal"
+          href={isEditing && entry ? `/journal/${entry.id}` : "/journal"}
           className="group inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200"
         >
           <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" aria-hidden="true" />

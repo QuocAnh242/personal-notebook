@@ -345,6 +345,13 @@ export async function addComment(entryId: string, content: string) {
 
   if (!content.trim()) return { error: 'Comment cannot be empty' }
 
+  // Fetch the entry's author id to send the notification
+  const { data: entry } = await supabase
+    .from('entries')
+    .select('user_id')
+    .eq('id', entryId)
+    .single()
+
   const { error } = await supabase
     .from('comments')
     .insert({
@@ -354,6 +361,26 @@ export async function addComment(entryId: string, content: string) {
     })
 
   if (error) return { error: error.message }
+
+  // Insert a notification if the commenter is not the entry author
+  if (entry && entry.user_id !== user.id) {
+    const { error: notifErr } = await supabase
+      .from('notifications')
+      .insert({
+        user_id: entry.user_id,
+        sender_id: user.id,
+        type: 'comment',
+        entry_id: entryId,
+        read: false
+      })
+    
+    if (notifErr) {
+      console.error('FAILED TO INSERT NOTIFICATION:', notifErr)
+    } else {
+      console.log('SUCCESSFULLY INSERTED NOTIFICATION')
+    }
+  }
+
   revalidatePath(`/explore/${entryId}`)
   return { error: null }
 }
