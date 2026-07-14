@@ -69,7 +69,7 @@ export default async function ExplorePage() {
         ) : (
           <div className="flex flex-col gap-8">
             {list.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} />
+              <EntryCard key={entry.id} entry={entry} href={`/explore/${entry.id}`} />
             ))}
           </div>
         )}
