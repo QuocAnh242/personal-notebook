@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
 import { LogoutMenuItem } from '@/components/logout-button'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export function JournalHeader({ email }: { email: string }) {
   return (
@@ -23,12 +24,13 @@ export function JournalHeader({ email }: { email: string }) {
             Morrow
           </span>
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Link href="/explore" className="text-sm font-medium text-muted-foreground hover:text-foreground">Explore</Link>
           <Link href="/journal/new" className={buttonVariants({ size: "sm", className: "flex items-center gap-1.5" })}>
             <Plus className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Start writing</span>
           </Link>
+          <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger 
               className={buttonVariants({ variant: "ghost", size: "icon", className: "rounded-full" })}

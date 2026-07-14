@@ -25,7 +25,9 @@ import {
   updateEntry,
   deleteEntry,
   type EntryInput,
+  shareEntryViaEmail,
 } from '@/app/journal/actions'
+import { ShareEmailDialog } from './share-email-dialog'
 
 export type EditableEntry = {
   id: string
@@ -144,11 +146,11 @@ export function EntryEditor({
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm">
+    <div className="mx-auto w-full max-w-2xl px-4 py-8 animate-in fade-in duration-500">
+      <div className="mb-8 flex items-center justify-between">
+        <Button asChild variant="ghost" size="sm" className="transition-all duration-200 hover:translate-x-[-2px]">
           <Link href="/journal">
-            <ArrowLeft className="size-4" aria-hidden="true" />
+            <ArrowLeft className="size-4 transition-all duration-300" aria-hidden="true" />
             Back
           </Link>
         </Button>
@@ -159,13 +161,13 @@ export function EntryEditor({
               size="sm"
               onClick={handleDelete}
               disabled={isPending}
-              className="text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive transition-all duration-200"
             >
               <Trash2 className="size-4" aria-hidden="true" />
               <span className="hidden sm:inline">Delete</span>
             </Button>
           )}
-          <Button onClick={handleSave} size="sm" disabled={isPending}>
+          <Button onClick={handleSave} size="sm" disabled={isPending} className="transition-all duration-200">
             {isPending && (
               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             )}
@@ -175,19 +177,19 @@ export function EntryEditor({
       </div>
 
       {/* Cover */}
-      <div className="mb-5">
+      <div className="mb-6 animate-slide-in" style={{ animationDelay: '100ms' }}>
         {coverUrl ? (
-          <div className="relative overflow-hidden rounded-xl border border-border">
+          <div className="group relative overflow-hidden rounded-xl border border-border shadow-sm transition-all duration-300 hover:shadow-md">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={coverUrl || '/placeholder.svg'}
               alt="Entry cover"
-              className="aspect-[16/7] w-full object-cover"
+              className="aspect-[16/7] w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             <button
               type="button"
               onClick={() => setCoverUrl(null)}
-              className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur transition-colors hover:bg-background"
+              className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur transition-all duration-200 hover:bg-background hover:scale-110 opacity-0 group-hover:opacity-100"
               aria-label="Remove cover image"
             >
               <X className="size-4" aria-hidden="true" />
@@ -198,14 +200,14 @@ export function EntryEditor({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="flex aspect-[16/7] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card/50 text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+            className="flex aspect-[16/7] w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/50 text-muted-foreground transition-all duration-300 hover:border-primary/70 hover:bg-card hover:text-foreground active:scale-95"
           >
             {uploading ? (
               <Loader2 className="size-6 animate-spin" aria-hidden="true" />
             ) : (
-              <ImagePlus className="size-6" aria-hidden="true" />
+              <ImagePlus className="size-6 transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
             )}
-            <span className="text-sm">
+            <span className="text-sm font-medium">
               {uploading ? 'Uploading…' : 'Add a cover image'}
             </span>
           </button>
@@ -228,7 +230,8 @@ export function EntryEditor({
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Give this page a title…"
-        className="w-full bg-transparent font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+        className="w-full bg-transparent font-serif text-3xl font-semibold leading-tight tracking-tight text-foreground placeholder:text-muted-foreground/50 focus:outline-none transition-all duration-200 animate-slide-in"
+        style={{ animationDelay: '150ms' }}
       />
 
       {/* Content */}
@@ -236,15 +239,16 @@ export function EntryEditor({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder="Pour it out here — your music, your love, your sadness, your plans, your story…"
-        className="mt-4 min-h-[280px] resize-none border-0 bg-transparent px-0 text-base leading-relaxed shadow-none focus-visible:ring-0"
+        className="mt-6 min-h-[320px] resize-none border-0 bg-transparent px-0 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/40 shadow-none focus-visible:ring-0 transition-all duration-200 animate-slide-in"
+        style={{ animationDelay: '200ms' }}
       />
 
       {/* Mood */}
-      <div className="mt-6 border-t border-border pt-6">
-        <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Mood
+      <div className="mt-8 border-t border-border/50 pt-8 animate-slide-in" style={{ animationDelay: '250ms' }}>
+        <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
+          How are you feeling?
         </Label>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           {MOODS.map((m) => {
             const active = mood === m.value
             return (
@@ -252,10 +256,10 @@ export function EntryEditor({
                 key={m.value}
                 type="button"
                 onClick={() => setMood(active ? null : m.value)}
-                className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 ${
                   active
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                    ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                    : 'border-border/70 bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-card/80'
                 }`}
               >
                 {m.label}
@@ -266,9 +270,9 @@ export function EntryEditor({
       </div>
 
       {/* Music */}
-      <div className="mt-6 grid gap-2">
-        <Label htmlFor="music" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Song link (optional)
+      <div className="mt-8 grid gap-2 animate-slide-in" style={{ animationDelay: '300ms' }}>
+        <Label htmlFor="music" className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/70">
+          Add a song (optional)
         </Label>
         <Input
           id="music"
@@ -277,63 +281,77 @@ export function EntryEditor({
           value={musicUrl}
           onChange={(e) => setMusicUrl(e.target.value)}
           placeholder="Paste a Spotify or YouTube link"
+          className="transition-all duration-200"
         />
       </div>
 
       {/* Sharing */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="font-medium text-foreground">Share this entry</p>
-            <p className="text-sm text-muted-foreground">
-              Anyone with the link can read it. Your notebook stays private.
-            </p>
+      <div className="mt-10 space-y-4 animate-slide-in" style={{ animationDelay: '350ms' }}>
+        {/* Public Share */}
+        <div className="group rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-4 transition-all duration-300 hover:border-border hover:bg-card">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <p className="font-medium text-foreground">Share with anyone</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Generate a link anyone can view. Your notebook stays private.
+              </p>
+            </div>
+            <Switch
+              checked={isPublic}
+              onCheckedChange={setIsPublic}
+              aria-label="Make this entry public"
+              className="transition-all duration-200"
+            />
           </div>
-          <Switch
-            checked={isPublic}
-            onCheckedChange={setIsPublic}
-            aria-label="Make this entry public"
-          />
-        </div>
-        {isPublic && shareUrl && (
-          <div className="mt-3 flex items-center gap-2">
-            <Input readOnly value={shareUrl} className="text-sm" />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={copyShareLink}
-              aria-label="Copy share link"
-            >
-              {copied ? (
-                <Check className="size-4" aria-hidden="true" />
-              ) : (
-                <Copy className="size-4" aria-hidden="true" />
+          {isPublic && shareUrl && (
+            <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top duration-300">
+              <div className="flex items-center gap-2">
+                <Input readOnly value={shareUrl} className="text-sm bg-background/50" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={copyShareLink}
+                  aria-label="Copy share link"
+                  className="transition-all duration-200 hover:scale-110"
+                >
+                  {copied ? (
+                    <Check className="size-4 text-green-600" aria-hidden="true" />
+                  ) : (
+                    <Copy className="size-4" aria-hidden="true" />
+                  )}
+                </Button>
+              </div>
+              {isEditing && entry && (
+                <div className="flex gap-2">
+                  <ShareEmailDialog entryId={entry.id} entryTitle={title || 'Untitled'} />
+                </div>
               )}
-            </Button>
-          </div>
-        )}
-        {isPublic && !shareUrl && (
-          <p className="mt-3 text-sm text-muted-foreground">
-            Save the entry to get its shareable link.
-          </p>
-        )}
-      </div>
-
-      {/* Sharing with Friends */}
-      <div className="mt-4 rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="font-medium text-foreground">Share with Friends</p>
-            <p className="text-sm text-muted-foreground">
-              Your accepted friends will see this entry in their Echoes feed.
+            </div>
+          )}
+          {isPublic && !shareUrl && (
+            <p className="mt-3 text-sm text-muted-foreground/70 italic">
+              Save the entry to generate its shareable link.
             </p>
+          )}
+        </div>
+
+        {/* Friend Share */}
+        <div className="group rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-4 transition-all duration-300 hover:border-border hover:bg-card">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <p className="font-medium text-foreground">Share with friends</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Your accepted friends see this in their Echoes feed.
+              </p>
+            </div>
+            <Switch
+              checked={sharedWithFriends}
+              onCheckedChange={setSharedWithFriends}
+              aria-label="Share with friends"
+              className="transition-all duration-200"
+            />
           </div>
-          <Switch
-            checked={sharedWithFriends}
-            onCheckedChange={setSharedWithFriends}
-            aria-label="Share with friends"
-          />
         </div>
       </div>
     </div>
