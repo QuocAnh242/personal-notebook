@@ -77,7 +77,8 @@ export async function MusicEmbed({ url }: { url: string }) {
           title="Song"
           loading="lazy"
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          className={isYouTube ? 'aspect-video w-full' : 'h-[152px] w-full border-none'}
+          className={isYouTube ? 'aspect-video w-full' : 'h-[152px] w-full border-none rounded-xl overflow-hidden'}
+          style={isYouTube ? {} : { backgroundColor: '#282828' }}
         />
       </div>
     )

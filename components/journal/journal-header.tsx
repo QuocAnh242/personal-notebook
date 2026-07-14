@@ -11,7 +11,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState, useRef } from 'react'
 
 export function JournalHeader({ email }: { email: string }) {
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -108,13 +108,13 @@ export function JournalHeader({ email }: { email: string }) {
                 {mounted && (
                   <button
                     onClick={() => {
-                      setTheme(theme === 'dark' ? 'light' : 'dark')
+                      setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
                       setOpen(false)
                     }}
                     className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors duration-150"
                   >
                     <div className="flex items-center gap-2.5">
-                      {theme === 'dark' ? (
+                      {resolvedTheme === 'dark' ? (
                         <Moon className="size-4 text-muted-foreground" />
                       ) : (
                         <Sun className="size-4 text-muted-foreground" />
@@ -122,7 +122,7 @@ export function JournalHeader({ email }: { email: string }) {
                       <span>Theme</span>
                     </div>
                     <span className="text-xs text-muted-foreground capitalize">
-                      {theme === 'dark' ? 'Dark' : 'Light'}
+                      {resolvedTheme === 'dark' ? 'Dark' : 'Light'}
                     </span>
                   </button>
                 )}

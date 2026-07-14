@@ -1,70 +1,137 @@
 'use client'
 
-import { useEffect, useState, startTransition } from 'react'
-import { Bell, UserCheck, UserX } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Bell, UserCheck, UserX, MessageSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { acceptFriendRequest, removeFriend } from '@/app/profile/actions'
 import { toast } from 'sonner'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuItem,
   DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu'
 
-type Friendship = {
+type NotificationItem = {
   id: string
-  status: string
-  user1: {
-    id: string
-    username: string
-  } | null
+  type: 'friend_request' | 'comment'
+  senderId: string
+  senderName: string
+  entryId?: string
+  created_at: string
+}
+
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.type = 'sine'
+    const now = ctx.currentTime
+    osc.frequency.setValueAtTime(783.99, now) // G5
+    osc.frequency.setValueAtTime(1046.50, now + 0.08) // C6
+
+    gain.gain.setValueAtTime(0, now)
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.04)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35)
+
+    osc.start(now)
+    osc.stop(now + 0.4)
+  } catch (e) {
+    console.warn('Audio chime blocked:', e)
+  }
 }
 
 export function NotificationBell() {
-  const [notifications, setNotifications] = useState<Friendship[]>([])
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const supabase = createClient()
+  const router = useRouter()
 
   const fetchNotifications = async (currentUserId: string) => {
-    const { data: friendships, error } = await supabase
+    // 1. Fetch pending friend requests
+    const { data: friendships } = await supabase
       .from('friendships')
-      .select('id, status, user1_id')
+      .select('id, user1_id, created_at')
       .eq('user2_id', currentUserId)
       .eq('status', 'pending')
 
-    if (error || !friendships) return
+    // 2. Fetch unread comment notifications
+    const { data: commentNotifications } = await supabase
+      .from('notifications')
+      .select('id, sender_id, type, entry_id, created_at')
+      .eq('user_id', currentUserId)
+      .eq('read', false)
 
-    const user1Ids = Array.from(new Set(friendships.map((f) => f.user1_id)))
+    const rawFriendships = friendships || []
+    const rawComments = commentNotifications || []
+
+    if (rawFriendships.length === 0 && rawComments.length === 0) {
+      setNotifications([])
+      return
+    }
+
+    // 3. Fetch sender profiles for usernames
+    const senderIds = Array.from(
+      new Set([
+        ...rawFriendships.map((f) => f.user1_id),
+        ...rawComments.map((c) => c.sender_id),
+      ])
+    )
+
     let profiles: { id: string; username: string | null }[] = []
-    if (user1Ids.length > 0) {
+    if (senderIds.length > 0) {
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, username')
-        .in('id', user1Ids)
+        .in('id', senderIds)
       profiles = profilesData || []
     }
 
-    const mapped = friendships.map((f) => {
+    // 4. Map to unified format
+    const items: NotificationItem[] = []
+
+    rawFriendships.forEach((f) => {
       const p = profiles.find((p) => p.id === f.user1_id)
-      const user1Name = p?.username || `User_${f.user1_id.slice(0, 5)}`
-      return {
+      items.push({
         id: f.id,
-        status: f.status,
-        user1: { id: f.user1_id, username: user1Name }
-      }
+        type: 'friend_request',
+        senderId: f.user1_id,
+        senderName: p?.username || `User_${f.user1_id.slice(0, 5)}`,
+        created_at: f.created_at,
+      })
     })
 
-    setNotifications(mapped)
+    rawComments.forEach((c) => {
+      const p = profiles.find((p) => p.id === c.sender_id)
+      items.push({
+        id: c.id,
+        type: 'comment',
+        senderId: c.sender_id,
+        senderName: p?.username || `User_${c.sender_id.slice(0, 5)}`,
+        entryId: c.entry_id,
+        created_at: c.created_at,
+      })
+    })
+
+    // Sort latest first
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    setNotifications(items)
   }
 
   useEffect(() => {
     const getSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (user) {
         setUserId(user.id)
         fetchNotifications(user.id)
@@ -77,7 +144,7 @@ export function NotificationBell() {
     if (!userId) return
 
     const channel = supabase
-      .channel('realtime-friendships-bell')
+      .channel('realtime-bell-notifications')
       .on(
         'postgres_changes',
         {
@@ -85,7 +152,34 @@ export function NotificationBell() {
           schema: 'public',
           table: 'friendships',
         },
-        () => {
+        (payload) => {
+          if (
+            payload.eventType === 'INSERT' &&
+            payload.new &&
+            payload.new.user2_id === userId &&
+            payload.new.status === 'pending'
+          ) {
+            playChime()
+          }
+          fetchNotifications(userId)
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+        },
+        (payload) => {
+          if (
+            payload.eventType === 'INSERT' &&
+            payload.new &&
+            payload.new.user_id === userId &&
+            !payload.new.read
+          ) {
+            playChime()
+          }
           fetchNotifications(userId)
         }
       )
@@ -116,6 +210,23 @@ export function NotificationBell() {
     }
   }
 
+  const handleCommentClick = async (notificationId: string, entryId: string) => {
+    // Mark as read in DB
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', notificationId)
+
+    if (error) {
+      console.error('Failed to mark notification as read:', error)
+    }
+
+    if (userId) fetchNotifications(userId)
+    
+    // Redirect to the entry
+    router.push(`/explore/${entryId}`)
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -141,42 +252,62 @@ export function NotificationBell() {
         ) : (
           <div className="max-h-64 overflow-y-auto space-y-1">
             {notifications.map((item) => {
-              const senderName = item.user1?.username || 'Someone'
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between p-2 rounded-md hover:bg-accent transition-colors duration-150"
-                >
-                  <div className="flex flex-col truncate pr-2">
-                    <span className="text-sm font-medium truncate">
-                      {senderName}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      Sent you a friend request
-                    </span>
+              if (item.type === 'friend_request') {
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-accent transition-colors duration-150"
+                  >
+                    <div className="flex flex-col truncate pr-2">
+                      <span className="text-sm font-medium truncate">
+                        {item.senderName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Sent you a friend request
+                      </span>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleAccept(item.id, item.senderName)}
+                        className="size-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
+                        title="Accept"
+                      >
+                        <UserCheck className="size-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDecline(item.id, item.senderName)}
+                        className="size-7 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md"
+                        title="Decline"
+                      >
+                        <UserX className="size-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleAccept(item.id, senderName)}
-                      className="size-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
-                      title="Accept"
-                    >
-                      <UserCheck className="size-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleDecline(item.id, senderName)}
-                      className="size-7 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md"
-                      title="Decline"
-                    >
-                      <UserX className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-              )
+                )
+              } else {
+                // Comment Notification
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleCommentClick(item.id, item.entryId!)}
+                    className="flex w-full items-start gap-2.5 p-2 rounded-md hover:bg-accent transition-colors duration-150 text-left"
+                  >
+                    <MessageSquare className="size-4 text-primary mt-0.5 shrink-0" />
+                    <div className="flex flex-col truncate pr-2">
+                      <span className="text-sm font-medium truncate">
+                        {item.senderName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Commented on your notebook page
+                      </span>
+                    </div>
+                  </button>
+                )
+              }
             })}
           </div>
         )}
